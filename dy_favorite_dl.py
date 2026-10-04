@@ -324,6 +324,32 @@ def build_favorite_url(sec_user_id, cursor, count):
     return FAVORITE_API + "?" + urllib.parse.urlencode(params)
 
 
+def describe_network_error(e):
+    """把底层 socket/urlopen 异常翻译成人能看懂的话 + 可操作的修复建议。
+
+    踩坑记录：NAS（飞牛/群晖等）的宿主机 /etc/resolv.conf 常指向 127.0.0.53
+    （systemd-resolved 桩服务），容器访问不到它，所有域名解析都会超时，
+    表现为 `<urlopen error [Errno -3] Try again>`（-3 == socket.EAI_AGAIN）。
+    """
+    msg = str(e)
+    err = getattr(e, "errno", None)
+    if isinstance(e, socket.gaierror) or err in (socket.EAI_AGAIN, socket.EAI_NONAME, -3, -2):
+        if err == socket.EAI_AGAIN or err == -3:
+            return ("域名解析超时（DNS 不可用）—— 这是 NAS 上跑容器最常见的问题："
+                    "宿主机 resolv.conf 指向 127.0.0.53，容器访问不到。"
+                    "修复：在 docker-compose.yml 的服务里加 "
+                    "`dns: [223.5.5.5, 119.29.29.29, 114.114.114.114]` 后 "
+                    "`docker compose up -d --build` 重建容器。"
+                    f"（原始错误：{msg}）")
+        return ("域名解析失败（DNS 查不到该域名）—— 请检查容器网络是否连通、"
+                f"是否存在 DNS 污染；必要时在 compose 里显式配置 `dns:`。原始错误：{msg}")
+    if isinstance(e, socket.timeout) or "timed out" in msg.lower():
+        return f"网络请求超时（{msg}）—— 可能是网速慢或抖音侧限流，稍后重试即可。"
+    if isinstance(e, urllib.error.URLError) and isinstance(getattr(e, "reason", None), OSError):
+        return describe_network_error(e.reason)
+    return msg
+
+
 def fetch_favorite_page(sec_user_id, cursor, count, cookie, logger, retries=3):
     """请求一页喜欢列表，返回解析好的 dict；失败抛异常。"""
     url = build_favorite_url(sec_user_id, cursor, count)
@@ -353,12 +379,19 @@ def fetch_favorite_page(sec_user_id, cursor, count, cookie, logger, retries=3):
                 logger.warn(f"获取列表失败（{attempt}/{retries}）：{last_err}，{delay}s 后重试")
                 time.sleep(delay)
         except Exception as e:  # noqa
-            last_err = e
+            # 网络类错误翻译成人话；DNS 故障值得等更久，退避放大到 5/15 秒
+            described = describe_network_error(e)
+            last_err = RuntimeError(described)
             if attempt < retries:
-                delay = min(2 ** attempt, 10)
-                logger.warn(f"获取列表失败（{attempt}/{retries}）：{e}，{delay}s 后重试")
+                delay = (5, 15)[min(attempt - 1, 1)] if _is_dns_error(e) else min(2 ** attempt, 10)
+                logger.warn(f"获取列表失败（{attempt}/{retries}）：{described}，{delay}s 后重试")
                 time.sleep(delay)
     raise RuntimeError(f"获取列表最终失败：{last_err}")
+
+
+def _is_dns_error(e):
+    err = getattr(e, "errno", None)
+    return isinstance(e, socket.gaierror) or err in (socket.EAI_AGAIN, socket.EAI_NONAME, -3, -2)
 
 
 # ---------------------------------------------------------------------------

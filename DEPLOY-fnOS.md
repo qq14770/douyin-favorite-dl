@@ -146,6 +146,7 @@ docker load -i dy-liked-dl.tar
 | 日志返回 `blocked` | Cookie 缺 `ttwid`。工具会自动补；仍失败就去浏览器重新复制**完整** Cookie |
 | 视频下不动，像卡住 | 现在会显示 `正在连接 xxx（第 n/3 次尝试）`——抖音偶尔分发**连不上的 CDN 节点**，工具会 6 秒内自动换节点，日志里能看到 `主机不可达…换下一个地址` |
 | 飞牛文件管理器里删不掉视频 | `user:` 的 UID 不对，改成你实际 UID |
+| 日志报 `<urlopen error [Errno -3] Try again>` | **容器内 DNS 解析超时**（最常见）。飞牛宿主机 `/etc/resolv.conf` 常指向 `127.0.0.53`，容器访问不到它。本仓库 compose 已内置 `dns: [223.5.5.5, 119.29.29.29, 114.114.114.114]`，若你是手工粘贴的旧版 compose，请补上这段后 `docker compose up -d --build` |
 | 定时任务没触发 | ① 容器是否在跑（`docker compose ps`）② 飞牛系统时间是否正确 ③ `TZ=Asia/Shanghai` 是否被删 |
 | 端口被占用 | 改 `ports` 左边（如 `"18090:8090"`），右边永远保持 8090 |
 | 忘记密码 | 改 compose 里 `PASS` 后 `docker compose up -d`；或删掉 `/app/data/config.json` 里的 `password` 字段 |
@@ -166,6 +167,46 @@ docker compose up -d --build
 docker compose down          # 删容器，保留数据
 # 彻底删除（会连视频一起没）：docker compose down -v
 ```
+
+---
+
+### DNS 故障专章：日志报 `[Errno -3] Try again`
+
+**这是 NAS 上跑容器最常见的坑。**
+
+**症状**：日志里出现
+```
+[WARN] 获取列表失败（1/3）：<urlopen error [Errno -3] Try again>，2s 后重试
+[ERROR] 获取第 1 页失败: 获取列表最终失败: <urlopen error [Errno -3] Try again>
+```
+
+**原因**：`Errno -3` 是 `socket.EAI_AGAIN`，即**域名解析超时**（不是"域名不存在"，那是 -2）。
+飞牛/群晖等 NAS 的宿主机 `/etc/resolv.conf` 通常指向 `127.0.0.53`（systemd-resolved 桩服务），
+**容器里的网络栈访问不到它**，于是所有域名解析都会失败。
+
+**先做诊断**（能立刻确认是不是这个问题）：
+```bash
+# 1) 容器里能否解析域名（失败会卡几秒后报 -3）
+docker exec dy-liked-dl python -c "import socket; print(socket.gethostbyname('www.douyin.com'))"
+
+# 2) 看容器实际用的 DNS 是哪个
+docker exec dy-liked-dl cat /etc/resolv.conf
+```
+若第 2 条看到 `nameserver 127.0.0.11`（Docker 内嵌 DNS）而它转发不到可用解析器，就是本问题。
+
+**修复**：在 compose 的服务里显式指定公共 DNS，然后**重建容器**（改 environment 不会热更新 DNS）：
+```yaml
+    dns:
+      - 223.5.5.5          # 阿里公共 DNS
+      - 119.29.29.29       # 腾讯 DNSPod
+      - 114.114.114.114    # 114DNS
+```
+```bash
+docker compose up -d --build
+```
+
+**注意**：本项目已把这段写进自带的 `docker-compose.yml`，用仓库里的 compose 不会有此问题；
+只有"手工粘贴旧版 compose"才需要自己补。
 
 ---
 

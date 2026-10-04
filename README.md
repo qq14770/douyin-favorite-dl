@@ -255,6 +255,8 @@ services:
 | 返回 `blocked` | Cookie 缺 `ttwid`。工具会自动补齐；仍失败就重新复制**完整** Cookie |
 | 容器里下载完在文件管理器里看不到 | 网页「输出目录」必须填 `/app/data`，不是宿主机路径 |
 | 容器一直「重启中」 | `docker compose logs --tail=50` 看报错；多半是挂载路径不存在或不可写，`mkdir -p` 建一下 |
+| 日志报 `<urlopen error [Errno -3] Try again>` | **容器内 DNS 解析超时**。NAS 宿主机 resolv.conf 常指向 `127.0.0.53`，容器访问不到。在 `docker-compose.yml` 服务下加 `dns: [223.5.5.5, 119.29.29.29, 114.114.114.114]` 后 `docker compose up -d --build` 重建。已内置该配置，直接更新 compose 即可 |
+| 日志报 `[Errno -2] Name or service not known` | DNS 查不到域名，多为污染或网络不通；同上处理，并确认容器能出网 |
 | 定时任务没触发 | 容器需常驻（`restart: unless-stopped`）；检查 `TZ=Asia/Shanghai` 是否被删；检查宿主机时间 |
 
 ---

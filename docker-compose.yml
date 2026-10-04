@@ -49,6 +49,15 @@ services:
     ports:
       - "8090:8090"          # 左边是飞牛对外端口，冲突就改成 18090 等
 
+    # ★★★ DNS：飞牛/群晖等 NAS 的宿主机 resolv.conf 常指向 127.0.0.53
+    #   （systemd-resolved 桩服务），容器访问不到它 → 解析域名必然超时，
+    #   表现为日志里报 <urlopen error [Errno -3] Try again>。
+    #   这里显式指定公共 DNS 即可根治。换成你自己的内网 DNS 也可以。
+    dns:
+      - 223.5.5.5          # 阿里公共 DNS
+      - 119.29.29.29       # 腾讯 DNSPod
+      - 114.114.114.114    # 114DNS
+
     environment:
       - TZ=Asia/Shanghai     # 定时任务按北京时间触发，勿删
       - PORT=8090

@@ -587,6 +587,23 @@ finally:
     else:
         os.environ["OUT_DIR"] = _env_saved
 
+# ---------- 15) 网络错误翻译（Docker 里 DNS 不可用是高频故障）----------
+import socket as _sock
+_dns1 = core.describe_network_error(_sock.gaierror(-3, "Try again"))
+ok("EAI_AGAIN 翻译成 DNS 超时", "DNS" in _dns1 and "223.5.5.5" in _dns1, _dns1[:60])
+ok("EAI_AGAIN 被判定为 DNS 错误", core._is_dns_error(_sock.gaierror(-3, "Try again")))
+_dns2 = core.describe_network_error(_sock.gaierror(-2, "Name or service not known"))
+ok("EAI_NONAME 翻译成解析失败", "解析失败" in _dns2, _dns2[:60])
+ok("EAI_NONAME 也判定为 DNS 错误", core._is_dns_error(_sock.gaierror(-2, "x")))
+_tmo = core.describe_network_error(_sock.timeout("timed out"))
+ok("超时翻译成可读提示", "超时" in _tmo, _tmo[:60])
+ok("普通 OSError 不被误判为 DNS", not core._is_dns_error(OSError("Connection refused")))
+ok("普通 OSError 原样透传", core.describe_network_error(OSError("boom")) == "boom")
+ok("URLError 会下钻到 reason",
+   "DNS" in core.describe_network_error(__import__("urllib.error", fromlist=["x"]).URLError(
+       _sock.gaierror(-3, "Try again"))))
+
+
 mock.shutdown(); srv.shutdown()
 print("\n".join("PASS " + p for p in PASS))
 print(f"\n==== 全部 {len(PASS)} 项回归通过 ====")
