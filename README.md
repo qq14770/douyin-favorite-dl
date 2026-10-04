@@ -90,75 +90,118 @@
 
 把 Cookie 存进 `cookie.txt`（一行），sec_user_id 存进 `sec_user_id.txt`，或直接在 Web 面板里填。
 
-### 2. 运行
+### 2. 命令行运行
+
+> ⚠️ `--out` 是**必填**参数，漏了会直接报错退出。
 
 ```bat
 :: 先看看帮助
 python dy_favorite_dl.py --help
 
-:: 试跑一次（只打印不下载，强烈建议先跑这个）
-python dy_favorite_dl.py --sec-user-id "MS4wLjABAAAA..." --cookie-file cookie.txt --dry-run
+:: 试跑一次：只列出将要下载的内容，不实际下载（强烈建议先跑这个）
+::            注意 --out 必填
+python dy_favorite_dl.py --sec-user-id "MS4wLjABAAAA..." --cookie-file cookie.txt --out "D:/抖音/喜欢" --dry-run
 
 :: 正式下载
-python dy_favorite_dl.py --sec-user-id "MS4wLjABAAAA..." --out "D:/抖音/喜欢" --cookie-file cookie.txt
+python dy_favorite_dl.py --sec-user-id "MS4wLjABAAAA..." --cookie-file cookie.txt --out "D:/抖音/喜欢"
+
+:: 也支持从文件读 sec_user_id（避免写在命令行里）
+python dy_favorite_dl.py --sec-user-id-file sec_user_id.txt --cookie-file cookie.txt --out "D:/抖音/喜欢"
 ```
 
 ### 3. 打开 Web 面板（更常用）
 
 ```bat
-:: 默认只监听本机 127.0.0.1:8090
-python webui.py --config config.json
+:: 监听所有网卡（这是默认值），端口 8090
+python webui.py
 
-:: 局域网内其他设备也能访问
-python webui.py --host 0.0.0.0 --port 8090 --config config.json
+:: ⚠️ 强烈建议设置访问密码 —— 默认无密码，且默认对整个局域网开放
+python webui.py --password 你的密码
 
-:: 设置访问密码（强烈建议）
-python webui.py --config config.json --password 你的密码
+:: 只允许本机访问（更安全，但手机/平板就连不上了）
+python webui.py --host 127.0.0.1 --password 你的密码
+
+:: 换端口 / 指定配置文件
+python webui.py --port 9000 --config config.json --password 你的密码
 ```
 
 浏览器打开 <http://127.0.0.1:8090>，在「配置」里填 sec_user_id 和 Cookie，点「保存并开始」。
+
+> 🔒 **安全提醒**：`webui.py` 的 `--host` 默认值是 `0.0.0.0`，也就是**默认对整个局域网开放且没有密码**。
+> 请务必加 `--password`，或把 `--host` 改成 `127.0.0.1` 只允许本机访问。
 
 ---
 
 ## Docker 部署（飞牛 fnOS / NAS）
 
-见 **[DEPLOY-fnOS.md](DEPLOY-fnOS.md)**。要点：
+见 **[DEPLOY-fnOS.md](DEPLOY-fnOS.md)**。本仓库自带的 `docker-compose.yml` 关键部分：
 
 ```yaml
 services:
-  douyin-favorite-dl:
+  dy-liked-dl:                      # ← 服务名，注意与下文容器名一致
     build: .
-    container_name: douyin-favorite-dl
-    restart: unless-stopped
+    container_name: dy-liked-dl
+    restart: unless-stopped         # 必须常驻，否则「定时任务」到点没人执行
     ports:
-      - "8090:8090"
+      - "8090:8090"                 # 左边是飞牛对外端口，被占用就改（如 18090:8090）
+    environment:
+      - TZ=Asia/Shanghai            # 定时任务按北京时间触发
+      - PORT=8090
+      - OUT_DIR=/app/data
     volumes:
-      - "/你的媒体目录":/data          # 视频/配置/状态都存这里
+      # ★★★ 只改左边（飞牛上的真实目录，含中文要加引号），右边永远不要改
+      - "/vol1/1000/影视/抖音/喜欢":/app/data
       - /etc/localtime:/etc/localtime:ro
 ```
 
-> ⚠️ 容器内网页里的**输出目录要填 `/data`**，不是宿主机路径 —— 填错的话文件会写进容器内部，在文件管理器里看不到。
-> 这是最容易踩的坑，文档里有详细说明。
+> ⚠️ **最容易踩的坑**：网页「配置」里的**输出目录必须填 `/app/data`**，不是宿主机路径。
+>
+> ```
+> volumes:
+>   - /vol1/1000/影视/抖音/喜欢:/app/data
+>     ↑ 飞牛上的真实路径              ↑ 容器里的路径
+> ```
+>
+> 只有右边 `/app/data` 是"映射出去"的目录。填左边的宿主机路径 → 容器内不存在该映射
+> → 文件写进容器内部 → **在飞牛文件管理器里永远看不到**。
+>
+> 部署后打开 `http://飞牛IP:8090`，进入「配置」确认输出目录是 `/app/data` 再点开始。
 
 ---
 
 ## 常用参数
 
-| 参数 | 说明 |
-|---|---|
-| `--sec-user-id` | 你的 sec_user_id |
-| `--cookie` / `--cookie-file` | Cookie（直接给或从文件读） |
-| `--out` | 输出目录 |
-| `--count` | 每页条数（默认 18） |
-| `--codec` | 优先编码：`264`=H.264（兼容性最好）、`265`=H.265（体积小） |
-| `--images` | 同时下载图文作品 |
-| `--dry-run` | **只打印计划，不下载** |
-| `--no-pretty-names` | 关闭"去数字"命名整理 |
-| `--no-cover` / `--no-avatar` | 不下载封面图 / 头像 |
-| `--min-interval` `--max-interval` | 单个视频下载间隔（秒），默认随机 1~4 |
-| `--page-delay-min` `--page-delay-max` | 翻页延迟（秒），默认随机 1~9 |
-| `--max-videos` `--max-pages` | 本轮最多下载多少视频 / 翻多少页（0 = 不限） |
-| `--resume` / `--no-resume` | 断点续传（默认开） |
+### 下载引擎 `dy_favorite_dl.py`
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--out` | **必填** | 输出目录 |
+| `--sec-user-id` | — | 你的 sec_user_id |
+| `--sec-user-id-file` | — | 从文件读 sec_user_id（避免写进命令行） |
+| `--cookie` / `--cookie-file` | — | Cookie（推荐用 `--cookie-file`，避免命令行泄露） |
+| `--count` | `18` | 每页条数 |
+| `--codec` | `264` | 优先编码：`264`=H.264（兼容性最好）、`265`=H.265（体积小） |
+| `--images` | 关 | 同时保存图文作品的图片 |
+| `--no-cover` / `--no-avatar` | 关 | 不下载封面图 / 作者头像 |
+| `--no-pretty-names` | 关 | 关闭"去数字"命名整理 |
+| `--min-interval` / `--max-interval` | `1` / `4` | 单个视频下载前随机延迟（秒） |
+| `--page-delay-min` / `--page-delay-max` | `2` / `9` | 翻页随机延迟（秒） |
+| `--download-timeout` | `30` | 单次下载超时（秒） |
+| `--max-videos` / `--max-pages` | `0` | 本轮最多处理视频数 / 抓取页数（`0` = 不限） |
+| `--no-resume` | 关 | **忽略断点状态，从头开始**（断点续传默认开启） |
+| `--overwrite` | 关 | 已存在的文件也重新下载 |
+| `--dry-run` | 关 | **只列出将要下载的内容，不实际下载** |
+| `--verbose` | 关 | 打印每一条已存在记录（默认只在结尾汇总） |
+
+### Web 面板 `webui.py`
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--host` | **`0.0.0.0`** | 监听地址。**默认对整个局域网开放**，改 `127.0.0.1` 可只限本机 |
+| `--port` | `8090` | 监听端口（也可用环境变量 `PORT`） |
+| `--config` | 同目录 `config.json` | 配置文件路径 |
+| `--out` | 取配置 | 覆盖配置里的输出目录 |
+| `--password` | 空 | 访问密码，**强烈建议设置**（不设则局域网内任何人都能打开） |
 
 ---
 
@@ -190,8 +233,29 @@ services:
 ## 安全须知
 
 * **Cookie 等同于登录态。** 不要提交到 git、不要发到群里、不要截图分享。
-* Web 面板**默认只监听 127.0.0.1**；要用局域网访问请显式加 `--host 0.0.0.0`，并**务必设置 `--password`**。
+  仓库里只提供了 `config.example.json` / `sec_user_id.txt.example` 两个**示例文件**，
+  真实的 `config.json` / `cookie.txt` / `sec_user_id.txt` 都已被 `.gitignore` 排除。
+* 🔴 **Web 面板默认是不设密码、且对整个局域网开放的**（`--host` 默认值就是 `0.0.0.0`）。
+  同一局域网内的任何设备都能打开它、读到你的 Cookie、删除文件、发起下载。三选一：
+  1. 加 `--password 你的密码`（**最省事，推荐**）
+  2. 加 `--host 127.0.0.1` 只允许本机访问（此时手机/平板就连不上了）
+  3. 两者都加
 * Cookie 会过期，失效后重新复制一次即可。
+* 建议**定期（几周）重新复制一次 Cookie**，不要一份 Cookie 用到失效为止。
+
+---
+
+## 常见问题
+
+| 现象 | 原因与解决 |
+|---|---|
+| 提示缺少参数直接退出 | `--out` 是**必填**的，任何命令都得带上它 |
+| 网页打不开 | 确认 `webui.py` 在运行；端口被占用就换 `--port` |
+| 局域网访问不了 | 检查 Windows 防火墙是否放行该端口；`--host` 不要设成 `127.0.0.1` |
+| 返回 `blocked` | Cookie 缺 `ttwid`。工具会自动补齐；仍失败就重新复制**完整** Cookie |
+| 容器里下载完在文件管理器里看不到 | 网页「输出目录」必须填 `/app/data`，不是宿主机路径 |
+| 容器一直「重启中」 | `docker compose logs --tail=50` 看报错；多半是挂载路径不存在或不可写，`mkdir -p` 建一下 |
+| 定时任务没触发 | 容器需常驻（`restart: unless-stopped`）；检查 `TZ=Asia/Shanghai` 是否被删；检查宿主机时间 |
 
 ---
 
