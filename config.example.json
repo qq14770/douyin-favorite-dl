@@ -1,0 +1,42 @@
+{
+  "_说明": "这是示例配置副本。复制成 config.json 后填入你自己的值。config.json 已被 .gitignore 排除，不会进仓库。",
+
+  "sec_user_id": "MS4wLjABAAAA把你的sec_user_id填这里",
+  "cookie": "sessionid=把你的Cookie填这里; ttwid=...",
+
+  "out": "D:/抖音/喜欢",
+
+  "count": 10,
+  "codec": 264,
+  "download_timeout": 30,
+
+  "min_interval": 1,
+  "max_interval": 4,
+  "page_delay_min": 1,
+  "page_delay_max": 9,
+
+  "max_videos": 0,
+  "max_pages": 0,
+
+  "images": true,
+  "no_cover": false,
+  "no_avatar": false,
+  "dry_run": false,
+  "caption_untitled": true,
+  "pretty_names": true,
+
+  "password": "",
+
+  "schedule_enabled": false,
+  "schedule": [
+    {
+      "id": "01",
+      "label": "凌晨全量",
+      "start": "02:00",
+      "end": "06:00",
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "on_start": true,
+      "on_end": true
+    }
+  ]
+}

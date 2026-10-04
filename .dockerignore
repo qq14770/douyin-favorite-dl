@@ -1,0 +1,21 @@
+# 敏感文件与本地数据不要打进镜像
+cookie.txt
+cookie.txt.example
+sec_user_id.txt
+sec_user_id.txt.example
+config.json
+config.json.bak
+data/
+.dystate/
+*.mp4
+*.m4a
+*.mp3
+*.jpg
+__pycache__/
+*.pyc
+*.log
+*.bak
+run.example.bat
+_regression.py
+CODE_REVIEW.md
+DEPLOY-fnOS.md

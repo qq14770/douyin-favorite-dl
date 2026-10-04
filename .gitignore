@@ -1,0 +1,50 @@
+# ---------- 凭据与个人数据（绝对不能提交）----------
+cookie.txt
+sec_user_id.txt
+config.json
+config.json.bak
+webui.log
+*.log
+data/
+.dystate/
+author/
+
+# ---------- 本地打包产物 ----------
+*.7z
+*.zip
+*.rar
+build/
+dist/
+
+# ---------- 媒体文件 ----------
+*.mp4
+*.m4v
+*.mov
+*.mkv
+*.webm
+*.flv
+*.ts
+*.m4s
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.gif
+*.part
+
+# ---------- 备份与临时 ----------
+*.bak
+*.tmp
+*.pyc
+__pycache__/
+.cache/
+.pytest_cache/
+
+# ---------- 编辑器 / 系统 ----------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
