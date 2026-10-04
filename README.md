@@ -22,6 +22,28 @@
 
 ---
 
+## 来源与致谢
+
+本工具诞生于 **[dysync.net](https://github.com/jianzhichu/dysync.net)**（抖音同步工具「抖小云」）项目，
+在其基础上以 **Python** 技术栈重新实现了「抖音喜欢视频批量下载 + Web 面板」这一能力。
+**特此向原作者致谢。**
+
+| | |
+|---|---|
+| 上游项目 | [jianzhichu/dysync.net](https://github.com/jianzhichu/dysync.net) |
+| 原作者 | 19173173892 |
+| 上游技术栈 | .NET Core + Vue |
+| 本工具技术栈 | 纯 Python 标准库 + 原生 Web 面板 |
+| 上游许可证 | MIT License, Copyright (c) 2025 19173173892 |
+
+上游采用 MIT 协议，本工具同样以 **MIT** 发布，并完整保留上游的原始版权声明
+（见 [LICENSE](LICENSE)）。本工具与上游是**两个独立项目**，代码实现不同，
+仅在功能思路与抖音接口经验上承袭。
+
+如认为本声明与实际情况不符，请通过 GitHub Issues 联系更正。
+
+---
+
 ## 效果图
 
 ### 内容列表 —— 增量统计 / 搜索筛选 / 批量管理

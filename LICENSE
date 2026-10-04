@@ -1,6 +1,7 @@
 MIT License
 
-Copyright (c) 2026 qqj4770
+Copyright (c) 2025 19173173892 (dysync.net — https://github.com/jianzhichu/dysync.net)
+Copyright (c) 2026 qqj4770 (本工具：抖音喜欢视频批量下载)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +23,19 @@ SOFTWARE.
 
 ---
 
-附加说明（非许可证条款，仅为使用者提示）：
+【来源声明】
+
+本工具诞生于 dysync.net 项目（https://github.com/jianzhichu/dysync.net ，
+原作者 19173173892，MIT License, Copyright (c) 2025），在其基础上以 Python
+技术栈重新实现了「抖音喜欢视频批量下载 + Web 面板」这一能力。
+
+上游项目采用 MIT 协议，故本工具同样以 MIT 发布，并完整保留上游的原始版权声明
+（见上方 Copyright 第一行）。本工具与上游为两个独立项目，代码实现不同，
+仅在功能思路与抖音接口经验上承袭。
+
+如认为本声明与实际情况不符，请通过 GitHub Issues 联系更正。
+
+【附加说明（非许可证条款，仅为使用者提示）】
 
 本工具仅供个人学习与家庭自用。请遵守抖音的用户协议与著作权规定，
 勿用于批量分发、商业用途或侵犯他人权益。使用者需自行承担相应责任。
