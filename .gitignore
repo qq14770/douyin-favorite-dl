@@ -48,3 +48,7 @@ __pycache__/
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
+
+# ---------- 文档配图（要入库，必须排在上面的 *.png 规则之后才能生效）----------
+!docs/images/
+!docs/images/*.png
